@@ -1,0 +1,17 @@
+left_rotor:
+  number: 3
+  setting: 0
+  window_letter: 'A'
+middle_rotor:
+  number: 5
+  setting: 0
+  window_letter: 'A'
+right_rotor:
+  number: 1
+  setting: 0
+  window_letter: 'A'
+plugboard: [
+  ['Z', 'S'],
+  ['O', 'Q'],
+]
+

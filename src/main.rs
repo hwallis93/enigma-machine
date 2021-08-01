@@ -1,48 +1,38 @@
-mod rotor;
-use crate::rotor::*;
-
-// TODO serde
-struct Config {
-    left_rotor: usize,
-    middle_rotor: usize,
-    right_rotor: usize,
-    plugboard: Vec<(char, char)>,
-}
-// TODO verification. Can be done with serde?
+use enigma_machine::{Config, EnigmaMachine};
 
 fn main() {
-    // let config = load_config()
-    let config = Config {
-        left_rotor: 0,
-        middle_rotor: 1,
-        right_rotor: 2,
-        plugboard: vec![],
-    };
-    let left_rotor = Rotor {
-        wiring: ROTOR_WIRINGS[config.left_rotor],
-        offset: 'A',
-    };
-    let middle_rotor = Rotor {
-        wiring: ROTOR_WIRINGS[config.middle_rotor],
-        offset: 'A',
-    };
-    let right_rotor = Rotor {
-        wiring: ROTOR_WIRINGS[config.right_rotor],
-        offset: 'A',
-    };
-    let mut enigma_machine = EnigmaMachine::new(
-        // Encoding travels from right to left
-        [right_rotor, middle_rotor, left_rotor],
-        Plugboard {
-            wire_pairs: config.plugboard,
-        },
-    );
-    let plain_text = ['A'];
-    println!("{:#?}", plain_text);
+    let config = load_config();
+    let plain_text = get_plain_text();
+    let cipher_text = encode(&plain_text, config);
 
-    let cipher_text: String = plain_text
-        .iter()
-        .map(|c| enigma_machine.encode(*c))
-        .collect();
-    println!("{:?}", cipher_text);
+    println!("Plain text: {}", plain_text);
+    println!("Cipher text: {}", cipher_text);
+}
+
+fn load_config() -> Config {
+    let file = std::fs::File::open("config.yaml").unwrap();
+    let config: Config = serde_yaml::from_reader(file).unwrap();
+    if let Err(text) = config.verify() {
+        panic!("{}", text);
+    }
+    config
+}
+
+fn get_plain_text() -> String {
+    let mut plain_text = String::new();
+    std::io::stdin().read_line(&mut plain_text).unwrap();
+    plain_text.strip_suffix("\n").unwrap().to_string()
+}
+
+fn encode(plain_text: &str, config: Config) -> String {
+    let mut enigma_machine = EnigmaMachine::new(config);
+    plain_text
+        .chars()
+        .map(|c| {
+            if !c.is_ascii_alphabetic() {
+                return c;
+            }
+            enigma_machine.encode(c.to_ascii_uppercase())
+        })
+        .collect()
 }
