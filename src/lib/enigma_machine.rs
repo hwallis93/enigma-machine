@@ -1,4 +1,4 @@
-use super::config::Config;
+use super::config::{Config, RotorConfig};
 use super::rotor_constants::{ALPHABET, REFLECTOR_B, ROTORS};
 
 /// Every contact on a rotor can be in one of 26 positions
@@ -15,15 +15,11 @@ pub struct EnigmaMachine {
 
 /// A rotor sitting in a slot
 struct Rotor {
-    /// The letters, in order, that A, B, C etc are wired to when the rotor is at the default
-    /// setting (of 0)
-    pub wiring: [char; 26],
+    /// The letters, in order, that A, B, C etc are wired to. Accounts for ring setting
+    pub wiring: Vec<char>,
 
-    /// The letter which the notch is at, hardcoded into the rotor (TODO)
+    /// The letter which the notch is at, hardcoded into the rotor
     pub notches: [char; 2],
-
-    /// How far the wiring is rotated away from the default position
-    pub setting: usize,
 
     /// How far the rotor has rotated in its slot. An offset of 0 indicates that 'A' is showing in
     /// the display window
@@ -34,18 +30,40 @@ struct Plugboard {
 }
 
 impl Rotor {
+    fn new(config: RotorConfig) -> Self {
+        let wiring = ROTORS[config.number - 1].wiring;
+        let rotated_wiring = [
+            &wiring[26 - config.setting..],
+            &wiring[..26 - config.setting],
+        ]
+        .concat()
+        .iter()
+        .map(|letter| alphabetical_letter(alphabetical_index(letter) + config.setting))
+        .collect();
+
+        Rotor {
+            wiring: rotated_wiring,
+            notches: ROTORS[config.number - 1].notches,
+            offset: alphabetical_index(&config.window_letter),
+        }
+    }
+
+    /// Rotate the rotor by 1 position
     fn rotate(&mut self) {
         self.offset = (self.offset + 1) % 26
     }
+
+    /// Encode a signal through the rotor from right to left
     fn encode(&self, input: RotorPosition) -> RotorPosition {
-        let input_letter_alphabetical_index = (input + 26 + self.offset - self.setting) % 26;
+        let input_letter_alphabetical_index = (input + self.offset) % 26;
         let output_letter = self.wiring[input_letter_alphabetical_index];
 
-        (alphabetical_index(output_letter) + 26 - self.offset + self.setting) % 26
+        (alphabetical_index(&output_letter) + 26 - self.offset) % 26
     }
 
+    /// Encode a signal through the rotor from left to right
     fn encode_backwards(&self, input: RotorPosition) -> RotorPosition {
-        let input_letter = alphabetical_letter((input + self.offset + 26 - self.setting) % 26);
+        let input_letter = alphabetical_letter((input + self.offset) % 26);
         let output_letter = alphabetical_letter(
             self.wiring
                 .iter()
@@ -54,10 +72,10 @@ impl Rotor {
                 % ALPHABET.len(),
         );
 
-        (alphabetical_index(output_letter) + 26 - self.offset + self.setting) % 26
+        (alphabetical_index(&output_letter) + 26 - self.offset) % 26
     }
 
-    /// Whether the next rotation of this rotor will cause a nieghbouring rotor to rotate too
+    /// Whether a keystroke will engage one of this rotor's notches
     fn is_on_notch(&self) -> bool {
         self.notches.contains(&alphabetical_letter(self.offset))
     }
@@ -79,37 +97,22 @@ impl Plugboard {
 
 impl EnigmaMachine {
     pub fn new(config: Config) -> Self {
-        let rotors = [
-            Rotor {
-                wiring: ROTORS[config.right_rotor.number - 1].wiring,
-                notches: ROTORS[config.right_rotor.number - 1].notches,
-                setting: 0,
-                offset: 0,
+        EnigmaMachine {
+            rotors: [
+                Rotor::new(config.right_rotor),
+                Rotor::new(config.middle_rotor),
+                Rotor::new(config.left_rotor),
+            ],
+            plugboard: Plugboard {
+                wire_pairs: config.plugboard,
             },
-            Rotor {
-                wiring: ROTORS[config.middle_rotor.number - 1].wiring,
-                notches: ROTORS[config.middle_rotor.number - 1].notches,
-                setting: 0,
-                offset: 0,
-            },
-            Rotor {
-                wiring: ROTORS[config.left_rotor.number - 1].wiring,
-                notches: ROTORS[config.left_rotor.number - 1].notches,
-                setting: 0,
-                offset: 0,
-            },
-        ];
-        let plugboard = Plugboard {
-            wire_pairs: config.plugboard,
-        };
-
-        EnigmaMachine { rotors, plugboard }
+        }
     }
     pub fn encode(&mut self, input: char) -> char {
         self.advance_rotors();
 
         let plugboard_result = self.plugboard.encode(input);
-        let wheel1_result = self.rotors[0].encode(alphabetical_index(plugboard_result));
+        let wheel1_result = self.rotors[0].encode(alphabetical_index(&plugboard_result));
         let wheel2_result = self.rotors[1].encode(wheel1_result);
         let wheel3_result = self.rotors[2].encode(wheel2_result);
         let reflector_result = self.reflect(wheel3_result);
@@ -120,23 +123,26 @@ impl EnigmaMachine {
             .encode(alphabetical_letter(wheel1_backwards_result))
     }
     fn advance_rotors(&mut self) {
-        if self.rotors[0].is_on_notch() {
-            if self.rotors[1].is_on_notch() {
-                self.rotors[2].rotate()
-            }
-            self.rotors[1].rotate()
+        let right_rotor_is_on_notch = self.rotors[0].is_on_notch();
+        let middle_rotor_is_on_notch = self.rotors[1].is_on_notch();
+
+        self.rotors[0].rotate();
+        if middle_rotor_is_on_notch || right_rotor_is_on_notch {
+            self.rotors[1].rotate();
         }
-        self.rotors[0].rotate()
+        if middle_rotor_is_on_notch {
+            self.rotors[2].rotate();
+        }
     }
     fn reflect(&self, input: RotorPosition) -> RotorPosition {
-        alphabetical_index(REFLECTOR_B[input])
+        alphabetical_index(&REFLECTOR_B[input])
     }
 }
 
-fn alphabetical_index(letter: char) -> usize {
+fn alphabetical_index(letter: &char) -> usize {
     ALPHABET
         .iter()
-        .position(|c| *c == letter)
+        .position(|c| c == letter)
         .expect("Received unknown character")
 }
 fn alphabetical_letter(index: usize) -> char {
