@@ -12,8 +12,10 @@ fn main() {
 fn load_config() -> Config {
     let file = std::fs::File::open("config.yaml").unwrap();
     let config: Config = serde_yaml::from_reader(file).unwrap();
-    if let Err(text) = config.verify() {
-        panic!("{}", text);
+
+    if let Err(errors) = config.verify() {
+        println!("Config file contains errors:\n{:?}", errors);
+        std::process::exit(1);
     }
     config
 }

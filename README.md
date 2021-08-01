@@ -5,7 +5,7 @@
 
 ## TODO
 - Tidyup
-  - Config verification in particular
+  - self.rotors[0] --> self.right_rotor
 - Containerise?
 - Modular arithmetic?
 - Config template file

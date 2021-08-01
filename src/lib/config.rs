@@ -1,9 +1,15 @@
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct RotorConfig {
+    /// Which rotor, denoted by its number, from 1 - 8 inclusive
     pub number: usize,
+
+    /// Ring setting, 0 - 25 inclusive
     pub setting: usize,
+
+    /// Initial orientation of the rotor, denoted by the letter visible in the window
     pub window_letter: char,
 }
 #[derive(Serialize, Deserialize)]
@@ -14,69 +20,117 @@ pub struct Config {
     pub plugboard: Vec<[char; 2]>,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum Slot {
+    Left,
+    Middle,
+    Right,
+}
+type RotorSlotPair = (RotorConfig, Slot);
+
+#[derive(Debug)]
+pub enum ConfigError {
+    RotorNumberOutsideRange(Slot, usize),
+    TwoRotorsWithSameNumber(Slot, Slot, usize),
+    RingSettingOutOfBounds(Slot, usize),
+    InvalidWindowLetter(Slot, char),
+    PlugboardDuplicateLetter(char),
+    TooManyPlugs(usize),
+}
+
 impl Config {
-    pub fn verify(&self) -> Result<(), String> {
-        let valid_rotor_range = 1..8;
+    pub fn verify(&self) -> Result<(), Vec<ConfigError>> {
+        let mut errors = vec![];
 
-        // Valid rotor numbers
-        if !valid_rotor_range.contains(&self.left_rotor.number) {
-            return Err(format!(
-                "Rotors may only have values 1-7. Left rotor had value {}",
-                self.left_rotor.number
-            ));
-        }
-        if !valid_rotor_range.contains(&self.middle_rotor.number) {
-            return Err(format!(
-                "Rotors may only have values 1-7. Middle rotor had value {}",
-                self.middle_rotor.number
-            ));
-        }
-        if !valid_rotor_range.contains(&self.right_rotor.number) {
-            return Err(format!(
-                "Rotors may only have values 1-7. Right rotor had value {}",
-                self.right_rotor.number
-            ));
-        }
+        errors.extend(self.verify_rotors());
+        errors.extend(self.verify_plugboard());
 
-        // No repeat rotors
-        if self.left_rotor.number == self.middle_rotor.number {
-            return Err(format!(
-                "Left and Middle rotors both had value {}. Each rotor can only be used once.",
-                self.left_rotor.number
-            ));
+        if !errors.is_empty() {
+            Err(errors)
+        } else {
+            Ok(())
         }
-        if self.left_rotor.number == self.right_rotor.number {
-            return Err(format!(
-                "Left and Right rotors both had value {}. Each rotor can only be used once.",
-                self.left_rotor.number
-            ));
-        }
-        if self.middle_rotor.number == self.right_rotor.number {
-            return Err(format!(
-                "Middle and Right rotors both had value {}. Each rotor can only be used once.",
-                self.middle_rotor.number
-            ));
-        }
+    }
 
-        // No repeats in plugboard
-        let mut unique_letters: Vec<char> = vec![];
+    fn verify_rotors(&self) -> Vec<ConfigError> {
+        let mut errors = vec![];
+        let left = (self.left_rotor, Slot::Left);
+        let middle = (self.middle_rotor, Slot::Middle);
+        let right = (self.right_rotor, Slot::Right);
+
+        for rotor in [left, middle, right].iter() {
+            errors.extend(self.verify_rotor_number_in_range(&rotor));
+            errors.extend(self.verify_ring_settings(&rotor));
+            errors.extend(self.verify_window_letters(&rotor));
+        }
+        errors.extend(self.verify_rotor_numbers_are_unique(&left, &middle));
+        errors.extend(self.verify_rotor_numbers_are_unique(&left, &right));
+        errors.extend(self.verify_rotor_numbers_are_unique(&middle, &right));
+
+        errors
+    }
+
+    fn verify_rotor_numbers_are_unique(
+        &self,
+        (rotor1, slot1): &RotorSlotPair,
+        (rotor2, slot2): &RotorSlotPair,
+    ) -> Option<ConfigError> {
+        if rotor1.number == rotor2.number {
+            Some(ConfigError::TwoRotorsWithSameNumber(
+                *slot1,
+                *slot2,
+                rotor1.number,
+            ))
+        } else {
+            None
+        }
+    }
+
+    fn verify_rotor_number_in_range(&self, (rotor, slot): &RotorSlotPair) -> Option<ConfigError> {
+        if !(1..=8).contains(&rotor.number) {
+            Some(ConfigError::RotorNumberOutsideRange(*slot, rotor.number))
+        } else {
+            None
+        }
+    }
+
+    fn verify_ring_settings(&self, (rotor, slot): &RotorSlotPair) -> Option<ConfigError> {
+        if !(0..=25).contains(&rotor.setting) {
+            Some(ConfigError::RingSettingOutOfBounds(*slot, rotor.setting))
+        } else {
+            None
+        }
+    }
+
+    fn verify_window_letters(&self, (rotor, slot): &RotorSlotPair) -> Option<ConfigError> {
+        if !('A'..='Z').contains(&rotor.window_letter) {
+            Some(ConfigError::InvalidWindowLetter(*slot, rotor.window_letter))
+        } else {
+            None
+        }
+    }
+
+    fn verify_plugboard(&self) -> Vec<ConfigError> {
+        let mut errors = vec![];
+        let mut seen_letters: Vec<char> = vec![];
+        let mut duplicated_letters: Vec<char> = vec![];
+
         for letter in self.plugboard.iter().flatten() {
-            if unique_letters.contains(letter) {
-                return Err(format!(
-                    "Cannot have letter in plugboard pairs more than once. Found '{}' more than once",
-                    letter
-                ));
+            if seen_letters.contains(letter) {
+                duplicated_letters.push(*letter)
             } else {
-                unique_letters.push(*letter)
+                seen_letters.push(*letter)
             }
         }
-        // 0 - 10 plugs in plugboard
+        duplicated_letters
+            .iter()
+            .unique()
+            .for_each(|letter| errors.push(ConfigError::PlugboardDuplicateLetter(*letter)));
+
         if self.plugboard.len() > 10 {
-            return Err(format!(
-                "Cannot have more than 10 pairs in plugboard. Found {} pairs",
-                self.plugboard.len()
-            ));
+            errors.push(ConfigError::TooManyPlugs(self.plugboard.len()))
         }
-        Ok(())
+
+        errors
     }
 }

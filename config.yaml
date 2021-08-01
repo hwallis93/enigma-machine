@@ -1,19 +1,18 @@
 left_rotor:
-  number: 2
+  number: 6
   setting: 5
-  window_letter: 'B'
+  window_letter: 'A'
 middle_rotor:
-  number: 4
-  setting: 5
+  number: 2
+  setting: 22
   window_letter: 'E'
 right_rotor:
-  number: 6
+  number: 3
   setting: 9
-  window_letter: 'R'
+  window_letter: 'D'
 plugboard: [
   ['U', 'E'],
   ['A', 'Y'],
   ['X', 'V'],
-  ['L', 'S'],
 ]
 

@@ -17,7 +17,7 @@ pub struct Rotor {
     /// The letters, in order, that A, B, C etc are wired to. Accounts for ring setting
     pub wiring: Vec<char>,
 
-    /// The letter which the notch is at, hardcoded into the rotor
+    /// The letters with notches next to them
     pub notches: [char; 2],
 
     /// How far the rotor has rotated in its slot. An offset of 0 indicates that 'A' is showing in
@@ -44,7 +44,7 @@ impl Rotor {
         }
     }
 
-    /// Rotate the rotor by 1 position
+    /// Rotate the rotor around 1 position
     pub fn rotate(&mut self) {
         self.offset = (self.offset + 1) % 26
     }

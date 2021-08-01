@@ -10,24 +10,6 @@ pub struct EnigmaMachine {
     plugboard: Plugboard,
 }
 
-struct Plugboard {
-    pub wire_pairs: Vec<[char; 2]>,
-}
-
-impl Plugboard {
-    fn encode(&self, input: char) -> char {
-        for [letter1, letter2] in self.wire_pairs.iter() {
-            if letter1 == &input {
-                return *letter2;
-            }
-            if letter2 == &input {
-                return *letter1;
-            }
-        }
-        input
-    }
-}
-
 impl EnigmaMachine {
     pub fn new(config: Config) -> Self {
         EnigmaMachine {
@@ -69,5 +51,23 @@ impl EnigmaMachine {
     }
     fn reflect(&self, input: RotorPosition) -> RotorPosition {
         alphabetical_index(&REFLECTOR_B[input])
+    }
+}
+
+struct Plugboard {
+    pub wire_pairs: Vec<[char; 2]>,
+}
+
+impl Plugboard {
+    fn encode(&self, input: char) -> char {
+        for [letter1, letter2] in self.wire_pairs.iter() {
+            if letter1 == &input {
+                return *letter2;
+            }
+            if letter2 == &input {
+                return *letter1;
+            }
+        }
+        input
     }
 }
