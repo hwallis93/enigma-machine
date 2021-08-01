@@ -1,6 +1,8 @@
 mod config;
-mod enigma_machine;
-mod rotor_constants;
+mod constants;
+mod machine;
+mod rotor;
+mod utils;
 
 pub use config::Config;
-pub use enigma_machine::EnigmaMachine;
+pub use machine::EnigmaMachine;

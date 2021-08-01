@@ -4,9 +4,9 @@
 
 
 ## TODO
-- Modular arithmetic? https://docs.rs/modular/1.0.0/modular/
 - Tidyup
+  - Config verification in particular
 - Containerise?
-- Test?
+- Modular arithmetic?
 - Config template file
 - Configurable reflector?
