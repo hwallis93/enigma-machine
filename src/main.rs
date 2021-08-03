@@ -1,40 +1,41 @@
-use enigma_machine::{Config, EnigmaMachine};
+use enigma_machine::EnigmaMachine;
 
 fn main() {
-    let config = load_config();
-    let plain_text = get_plain_text();
-    let cipher_text = encode(&plain_text, config);
+    let file = std::fs::File::open("config.yaml").unwrap_or_else(|err| {
+        println!("Error: Could not open config file:\n{:?}", err);
+        std::process::exit(1)
+    });
+    let config = serde_yaml::from_reader(file).unwrap_or_else(|err| {
+        println!("Error: could not parse config file:\n{:?}", err);
+        std::process::exit(2)
+    });
+    let mut machine = EnigmaMachine::new(config).unwrap_or_else(|errors| {
+        println!("Error: Config file is invalid:\n{:?}", errors);
+        std::process::exit(3);
+    });
 
-    println!("Plain text: {}", plain_text);
+    let mut plain_text = String::new();
+    println!("Type plain text and hit <Enter>:");
+    std::io::stdin()
+        .read_line(&mut plain_text)
+        .unwrap_or_else(|err| {
+            println!("Error: Failed to read user input:\n{:?}", err);
+            std::process::exit(4);
+        });
+
+    let cipher_text = encode(&mut machine, &plain_text);
+    print!("\nPlain text: {}", plain_text);
     println!("Cipher text: {}", cipher_text);
 }
 
-fn load_config() -> Config {
-    let file = std::fs::File::open("config.yaml").unwrap();
-    let config: Config = serde_yaml::from_reader(file).unwrap();
-
-    if let Err(errors) = config.verify() {
-        println!("Config file contains errors:\n{:?}", errors);
-        std::process::exit(1);
-    }
-    config
-}
-
-fn get_plain_text() -> String {
-    let mut plain_text = String::new();
-    std::io::stdin().read_line(&mut plain_text).unwrap();
-    plain_text.strip_suffix("\n").unwrap().to_string()
-}
-
-fn encode(plain_text: &str, config: Config) -> String {
-    let mut enigma_machine = EnigmaMachine::new(config);
+fn encode(machine: &mut EnigmaMachine, plain_text: &str) -> String {
     plain_text
         .chars()
         .map(|c| {
             if !c.is_ascii_alphabetic() {
                 return c;
             }
-            enigma_machine.encode(c.to_ascii_uppercase())
+            machine.encode(c.to_ascii_uppercase())
         })
         .collect()
 }
