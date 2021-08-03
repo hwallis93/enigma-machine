@@ -1,0 +1,28 @@
+# Rotors
+#
+# Left, middle, and right rotor sections represent the rotors in those slots in the machine.
+# Config options:
+#  - number: Which number rotor has been put in the slot (1 - 8)
+#  - settings: The rotor's ring setting as an offset from 'A' (0 - 25)
+#  - window_letter: The uppermost letter when the rotor is put in its slot ('A' - 'Z')
+left_rotor:
+  number: 1
+  setting: 5
+  window_letter: 'D'
+middle_rotor:
+  number: 3
+  setting: 9
+  window_letter: 'R'
+right_rotor:
+  number: 7
+  setting: 24
+  window_letter: 'U'
+
+# Plugboard
+#
+# Takes a list of pairs of letters that are plugged together. Maximum of 10. No repeat letters
+plugboard: [
+  ['A', 'R'],
+  ['E', 'M'],
+]
+

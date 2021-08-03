@@ -3,9 +3,8 @@ pub struct RotorConstants {
     pub notches: [char; 2],
 }
 
-pub const ALPHABET: [char; 26] = [
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
-    'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+pub const ROTORS: [RotorConstants; 8] = [
+    ROTOR_I, ROTOR_II, ROTOR_III, ROTOR_IV, ROTOR_V, ROTOR_VI, ROTOR_VII, ROTOR_VIII,
 ];
 const ROTOR_I: RotorConstants = RotorConstants {
     wiring: [
@@ -63,11 +62,13 @@ const ROTOR_VIII: RotorConstants = RotorConstants {
     ],
     notches: ['M', 'Z'],
 };
-pub const ROTORS: [RotorConstants; 8] = [
-    ROTOR_I, ROTOR_II, ROTOR_III, ROTOR_IV, ROTOR_V, ROTOR_VI, ROTOR_VII, ROTOR_VIII,
-];
 
 pub const REFLECTOR_B: [char; 26] = [
     'Y', 'R', 'U', 'H', 'Q', 'S', 'L', 'D', 'P', 'X', 'N', 'G', 'O', 'K', 'M', 'I', 'E', 'B', 'F',
     'Z', 'C', 'W', 'V', 'J', 'A', 'T',
+];
+
+pub const ALPHABET: [char; 26] = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
+    'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
 ];

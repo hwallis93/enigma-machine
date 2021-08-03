@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
+/// Settings for an individual rotor, as part of the Engima machine settings
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct RotorConfig {
     /// Which rotor, denoted by its number, from 1 - 8 inclusive
@@ -12,6 +13,8 @@ pub struct RotorConfig {
     /// Initial orientation of the rotor, denoted by the letter visible in the window
     pub window_letter: char,
 }
+
+/// Represents all possible Engima machine settings
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     pub left_rotor: RotorConfig,
@@ -28,13 +31,25 @@ pub enum Slot {
 }
 type RotorSlotPair = (RotorConfig, Slot);
 
+/// Errors that can be raised by Config validation
 #[derive(Debug)]
 pub enum ConfigError {
+    /// A rotor's number was not in 1 - 8
     RotorNumberOutsideRange(Slot, usize),
+
+    /// Two rotors had the same number
     TwoRotorsWithSameNumber(Slot, Slot, usize),
+
+    /// A rotor's ring setting was not in 0 - 25
     RingSettingOutOfBounds(Slot, usize),
+
+    /// A rotor's window letter was not in 'A' - 'Z'
     InvalidWindowLetter(Slot, char),
+
+    /// The plugboard contained a duplicate letter
     PlugboardDuplicateLetter(char),
+
+    /// The plugboard had more than ten plugs
     TooManyPlugs(usize),
 }
 
